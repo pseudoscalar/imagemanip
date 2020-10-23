@@ -1,4 +1,3 @@
-extern crate bmp;
 use bmp::{Image, Pixel};
 
 pub fn _dummy(_img: &mut Image, _x: u32, _y: u32){
@@ -10,8 +9,6 @@ pub struct VolatilityGrid{
     pub avg: Pixel,
     pub volatility: f64,
 }
-
-unsafe impl Send for VolatilityGrid {}
 
 pub fn get_volatility_2x2(img: &mut Image, x: u32, y: u32) -> VolatilityGrid{
     /*let p1 = img.get_pixel(x, y);

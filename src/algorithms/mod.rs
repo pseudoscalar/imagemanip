@@ -1,20 +1,17 @@
-extern crate bmp;
-extern crate num_cpus;
 use bmp::{Image, Pixel};
 use std::cmp::Ordering;
 use std::collections::HashMap;
-#[path="convolvers.rs"]
-mod convolvers;
-#[path="convolution_fns.rs"]
+
 mod convolution_fns;
+mod convolvers;
 
 fn volatility_compare(v1: &convolution_fns::VolatilityGrid, v2: &convolution_fns::VolatilityGrid) -> Ordering{
-    if v1.volatility < v2.volatility {
-        return Ordering::Less
-    } else if v1.volatility > v2.volatility {
-        return Ordering::Greater
+    match v1.volatility.partial_cmp(&v2.volatility) {
+        Some(ordering) => ordering,
+        None => {
+            v1.volatility.to_bits().cmp(&v2.volatility.to_bits())
+        }
     }
-    return Ordering::Equal
 }
 
 fn flatten_2x2(img: &mut Image, x: u32, y: u32, color: Pixel){
@@ -36,15 +33,15 @@ pub fn cartoonify_v0(img: &mut Image, settings: &HashMap<String, String>){
     let mut volatilities: Vec<convolution_fns::VolatilityGrid> = convolvers::readonly_sub_grid_size_x_with_offset(convolution_fns::readonly_get_volatility_2x2, 2, 0, 0, img); //in 2x2 grid, collect volatilities
     volatilities.sort_by(volatility_compare); //sort by volatility
     volatilities = volatilities.into_iter().filter(|v| v.volatility > 0.0).collect();//drop all volatilities of 0
-    let mut cutoff_idx = (volatilities.len() as f64 * cutoff_pct) as i32;
+    let mut cutoff_idx = (volatilities.len() as f64 * cutoff_pct) as usize;
     for i in 0..cutoff_idx {
-        flatten_2x2(img, volatilities[i as usize].x, volatilities[i as usize].y, volatilities[i as usize].avg); //set all pixels in that grid to the average
+        flatten_2x2(img, volatilities[i].x, volatilities[i].y, volatilities[i].avg); //set all pixels in that grid to the average
     }
     for _ in 0..passes {
         volatilities = convolvers::readonly_convolve_size_x_multi(convolution_fns::readonly_get_volatility_2x2, 2, img);
         volatilities.sort_by(volatility_compare); //sort by volatility
         volatilities = volatilities.into_iter().filter(|v| v.volatility > 0.0).collect();//drop all volatilities of 0
-        cutoff_idx = (volatilities.len() as f64 * cutoff_pct) as i32;
+        cutoff_idx = (volatilities.len() as f64 * cutoff_pct) as usize;
         for i in 0..cutoff_idx {
             flatten_2x2(img, volatilities[i as usize].x, volatilities[i as usize].y, volatilities[i as usize].avg); //set all pixels in that grid to the average
         }
